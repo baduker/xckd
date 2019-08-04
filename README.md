@@ -1,5 +1,5 @@
 # xkcd
-A tiny Python image scraper for [xkcd.com](xkcd.com)
+A tiny Python image scraper for [xkcd.com](https://xkcd.com/)
 
 ![Arrow](https://imgs.xkcd.com/comics/arrow.png)
 
