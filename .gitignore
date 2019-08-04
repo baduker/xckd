@@ -1,0 +1,5 @@
+# Don't track the following folders:
+/xkcd_comics
+
+# Don't track the following compressed files:
+xkcd_comics.tar.xz
