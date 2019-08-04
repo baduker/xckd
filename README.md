@@ -1,5 +1,6 @@
 # xkcd
 A tiny Python image scraper for xckd.com page
+
 ![Arrow](https://imgs.xkcd.com/comics/arrow.png)
 
 ## What's xkcd?
@@ -9,3 +10,8 @@ It's not actually an acronym. It's just a word with no phonetic pronunciation --
 ## What's this script about?
 
 It's just a very simple comic image down loader.
+
+## Here's a sample!
+
+[![Haskell](https://imgs.xkcd.com/comics/haskell.png)](https://xkcd.com/1312/)
+[![Perl](https://imgs.xkcd.com/comics/perl_problems.png)](https://xkcd.com/1171/)
