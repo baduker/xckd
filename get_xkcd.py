@@ -10,15 +10,17 @@ from shutil import copyfileobj
 
 
 BASE_URL = "https://www.xkcd.com/"
-CURRENT_MAX_PAGE = 2184
+ARCHIVE = "https://www.xkcd.com/archive"
 SAVE_DIRECTORY = Path('xkcd_comics')
 LOGO = """
- image_downloader _for
-__  _| | _____ __| |
-\ \/ / |/ / __/ _` |
- >  <|   < (_| (_| |
-/_/\_\_|\_\___\__,_|.com
-version 0.1
+       _           _                      
+ tiny | |  image  | | downloader for                    
+ __  _| | _____ __| |  ___ ___  _ __ ___  
+ \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
+  >  <|   < (_| (_| || (_| (_) | | | | | |
+ /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
+
+version: 0.2 
 """
 
 
@@ -27,25 +29,29 @@ def show_logo():
 
 
 def clip_url(img):
-    try:
-        return img.rpartition("/")[-1]
-    except AttributeError:
-        print("ValueError!")
+    return img.rpartition("/")[-1]
 
 
 def fetch_url(url):
     return requests.get(url).text
 
 
+def get_current_comic_count():
+    html = fetch_url(ARCHIVE)
+    soup = bs(html, "html.parser")
+    hrefs = []
+    for link in soup.find_all("div", class_="box"):
+        for br in link.find_all("a"):
+            hrefs.append(br["href"])
+    return int(hrefs[0].strip("/"))
+
+
 def get_images_from_page(url):
     html = fetch_url(url)
     soup = bs(html, "html.parser")
-    try:
-        for link in soup.find_all("div", {"id": "comic"}):
-            for img in link.find_all("img", src=True):
-                return "https:" + img["src"]
-    except TypeError:
-        print("Invalid or unavailable url!")
+    for link in soup.find_all("div", {"id": "comic"}):
+        for img in link.find_all("img", src=True):
+            return "https:" + img["src"]
 
 
 def save_image(img):
@@ -63,8 +69,9 @@ def make_dir():
 def get_xkcd():
     show_logo()
     make_dir()
-    for page in range(2068, CURRENT_MAX_PAGE + 1):
-        print(f"Fetching page {page} out of {CURRENT_MAX_PAGE}")
+    latest_comic = get_current_comic_count()
+    for page in range(1, latest_comic + 1):
+        print(f"Fetching page {page} out of {latest_comic}")
         save_image(get_images_from_page(f"{BASE_URL}{page}/"))
 
 
