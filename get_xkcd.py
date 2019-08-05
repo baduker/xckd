@@ -39,11 +39,8 @@ def fetch_url(url):
 def get_current_comic_count():
     html = fetch_url(ARCHIVE)
     soup = bs(html, "html.parser")
-    hrefs = []
-    for link in soup.find_all("div", class_="box"):
-        for br in link.find_all("a"):
-            hrefs.append(br["href"])
-    return int(hrefs[0].strip("/"))
+    return [br["href"] for link in soup.find_all("div", class_="box") 
+            for br in link.find_all("a")][0].split("/")
 
 
 def get_images_from_page(url):
@@ -67,15 +64,15 @@ def make_dir():
 
 
 def get_xkcd():
-    show_logo()
     make_dir()
-    latest_comic = get_current_comic_count()
+    latest_comic = int("".join(get_current_comic_count()))
     for page in range(1, latest_comic + 1):
         print(f"Fetching page {page} out of {latest_comic}")
         save_image(get_images_from_page(f"{BASE_URL}{page}/"))
 
 
 def main():
+    show_logo()
     get_xkcd()
 
 
