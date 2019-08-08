@@ -20,7 +20,7 @@ LOGO = """
   >  <|   < (_| (_| || (_| (_) | | | | | |
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
 
-version: 0.2 
+version: 0.3
 """
 
 
@@ -33,19 +33,20 @@ def clip_url(img):
 
 
 def fetch_url(url):
-    return requests.get(url).text
+    return requests.get(url).text or requests.get(url).raise_for_status()
+
+def make_soup(url):
+    return bs(fetch_url(url), "html.parser")
 
 
-def get_current_comic_count():
-    html = fetch_url(ARCHIVE)
-    soup = bs(html, "html.parser")
+def get_latest_comic_number():
+    soup = make_soup(ARCHIVE)
     return [br["href"] for link in soup.find_all("div", class_="box") 
             for br in link.find_all("a")][0].split("/")
 
 
 def get_images_from_page(url):
-    html = fetch_url(url)
-    soup = bs(html, "html.parser")
+    soup = make_soup(url)
     for link in soup.find_all("div", {"id": "comic"}):
         for img in link.find_all("img", src=True):
             return "https:" + img["src"]
@@ -65,8 +66,8 @@ def make_dir():
 
 def get_xkcd():
     make_dir()
-    latest_comic = int("".join(get_current_comic_count()))
-    for page in range(1, latest_comic + 1):
+    latest_comic = int("".join(get_latest_comic_number())) + 1
+    for page in reversed(range(1, latest_comic)):
         print(f"Fetching page {page} out of {latest_comic}")
         save_image(get_images_from_page(f"{BASE_URL}{page}/"))
 
