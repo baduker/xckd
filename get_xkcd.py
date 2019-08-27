@@ -3,11 +3,11 @@
 #!/usr/bin/python3
 
 import os
+from pathlib import Path
 from shutil import copyfileobj
 
 import requests
 from lxml import html
-from pathlib import Path
 
 
 BASE_URL = "https://www.xkcd.com/"
