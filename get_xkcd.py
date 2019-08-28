@@ -74,7 +74,7 @@ def get_xkcd():
         print(f"Fetching page {page} out of {latest_comic}")
         try:
             save_image(get_images_from_page(f"{BASE_URL}{page}/"))
-        except (ValueError, requests.exceptions.MissingSchema):
+        except (ValueError, AttributeError, requests.exceptions.MissingSchema):
             print(f"WARNING: Invalid comic image source url.")
             continue
 
