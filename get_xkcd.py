@@ -7,6 +7,7 @@ import threading
 from pathlib import Path
 from shutil import copyfileobj
 
+
 import requests
 from lxml import html
 
@@ -21,7 +22,7 @@ LOGO = """
  \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
   >  <|   < (_| (_| || (_| (_) | | | | | |
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
- version: 0.6
+ version: 0.7
 """
 
 
@@ -85,28 +86,40 @@ def save_image(img: str):
         copyfileobj(img.raw, output)
 
 
-def show_time(seconds):
+def show_time(seconds: int) -> int:
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
-    time_elapsed = "{:02d}:{:02d}:{:02d}".format(hours, minutes, seconds)
+    time_elapsed = f"{hours:02d}:{minutes:02d}:{seconds:02d}" 
     return time_elapsed
 
 
 def get_xkcd():
     show_logo()
     make_dir()
+
+    collect_garbage = []
     latest_comic = get_penultimate(ARCHIVE)
     pages = get_number_of_pages(latest_comic)
+
     start = time.time()
-    for page in reversed(range(latest_comic - pages, latest_comic + 1)):
+    for page in reversed(range(latest_comic - pages + 1, latest_comic + 1)):
         print(f"Fetching page {page} out of {latest_comic}")
         try:
-            save_image(get_images_from_page(f"{BASE_URL}{page}/")) 
+            url = get_images_from_page(f"{BASE_URL}{page}/")
+            thread = threading.Thread(target=save_image, args=(url, ))
+            thread.start()
         except (ValueError, AttributeError, requests.exceptions.MissingSchema):
             print(f"WARNING: Invalid comic image source url.")
+            collect_garbage.append(f"{BASE_URL}{page}")
             continue
+    thread.join()
     end = time.time()
+
     print(f"Downloaded {pages} comic(s) in {show_time(int(end - start))}.")
+
+    if len(collect_garbage) > 0:
+        print("However, was unable to download images for these pages:")
+        print("\n".join(page for page in collect_garbage))
 
 
 def main():
