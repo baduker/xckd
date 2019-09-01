@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import threading
 from pathlib import Path
 from shutil import copyfileobj
 
@@ -20,7 +21,7 @@ LOGO = """
  \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
   >  <|   < (_| (_| || (_| (_) | | | | | |
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
- version: 0.5
+ version: 0.6
 """
 
 
@@ -36,7 +37,7 @@ def head_option(values: list) -> str:
     return next(iter(values), None)
 
 
-def get_latest_comic(url: str) -> int:
+def get_penultimate(url: str) -> int:
     page = fetch_url(url)
     tree = html.fromstring(page.content)
     newest_comic = head_option(
@@ -58,8 +59,10 @@ def get_number_of_pages(latest_comic: int) -> int:
             number_of_comics = int(input(">> "))
         except ValueError:
             print("Error: Expected a number. Try again.")
+            continue
         if number_of_comics > latest_comic or number_of_comics < 0:
             print("Error: Incorrect number of comics. Try again.")
+            continue
         elif number_of_comics == 0:
             sys.exit()
         return number_of_comics
@@ -92,18 +95,18 @@ def show_time(seconds):
 def get_xkcd():
     show_logo()
     make_dir()
-    latest_comic = get_latest_comic(ARCHIVE)
+    latest_comic = get_penultimate(ARCHIVE)
     pages = get_number_of_pages(latest_comic)
     start = time.time()
     for page in reversed(range(latest_comic - pages, latest_comic + 1)):
         print(f"Fetching page {page} out of {latest_comic}")
         try:
-            save_image(get_images_from_page(f"{BASE_URL}{page}/"))
+            save_image(get_images_from_page(f"{BASE_URL}{page}/")) 
         except (ValueError, AttributeError, requests.exceptions.MissingSchema):
             print(f"WARNING: Invalid comic image source url.")
             continue
     end = time.time()
-    print(f"Downloaded {pages} comics in {show_time(int(end - start))}.")
+    print(f"Downloaded {pages} comic(s) in {show_time(int(end - start))}.")
 
 
 def main():
