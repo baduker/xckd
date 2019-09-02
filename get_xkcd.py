@@ -3,7 +3,7 @@
 import os
 import sys
 import time
-import threading
+import concurrent.futures
 from pathlib import Path
 from shutil import copyfileobj
 
@@ -13,21 +13,20 @@ from lxml import html
 
 
 BASE_URL = "https://www.xkcd.com/"
-ARCHIVE = "https://www.xkcd.com/archive"
 SAVE_DIRECTORY = Path('xkcd_comics')
-LOGO = """
-       _           _                      
- tiny | |  image  | | downloader for
- __  _| | _____ __| |  ___ ___  _ __ ___  
- \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
-  >  <|   < (_| (_| || (_| (_) | | | | | |
- /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
- version: 0.7
-"""
 
 
 def show_logo():
-    print(LOGO)
+    logo = """
+       _           _                      
+ tiny | |  image  | | downloader for
+ __  _| | _____ __| |  ___ ___  _ __ ___  
+ \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \
+  >  <|   < (_| (_| || (_| (_) | | | | | |
+ /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
+ version: 0.8.1
+ """
+    return print(logo)
 
 
 def fetch_url(url: str) -> requests.Response:
@@ -77,8 +76,8 @@ def make_dir():
     return os.makedirs(SAVE_DIRECTORY, exist_ok=True)
 
 
-def save_image(img: str):
-    comic_name = clip_url(img)
+def save_image(comic_id: str, img: str):
+    comic_name = comic_id + "_" + clip_url(img)
     print(f"Downloading: {comic_name}")
     f_name = SAVE_DIRECTORY / comic_name
     with requests.get("https:" + img, stream=True) as img, open(f_name, "wb") \
@@ -89,7 +88,7 @@ def save_image(img: str):
 def show_time(seconds: int) -> int:
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
-    time_elapsed = f"{hours:02d}:{minutes:02d}:{seconds:02d}" 
+    time_elapsed = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
     return time_elapsed
 
 
@@ -98,21 +97,21 @@ def get_xkcd():
     make_dir()
 
     collect_garbage = []
-    latest_comic = get_penultimate(ARCHIVE)
+    latest_comic = get_penultimate(f"{BASE_URL}archive")
     pages = get_number_of_pages(latest_comic)
 
     start = time.time()
-    for page in reversed(range(latest_comic - pages + 1, latest_comic + 1)):
-        print(f"Fetching page {page} out of {latest_comic}")
-        try:
-            url = get_images_from_page(f"{BASE_URL}{page}/")
-            thread = threading.Thread(target=save_image, args=(url, ))
-            thread.start()
-        except (ValueError, AttributeError, requests.exceptions.MissingSchema):
-            print(f"WARNING: Invalid comic image source url.")
-            collect_garbage.append(f"{BASE_URL}{page}")
-            continue
-    thread.join()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        for page in reversed(range(latest_comic-pages + 1, latest_comic + 1)):
+            print(f"Fetching page {page} out of {latest_comic}")
+            try:
+                url = get_images_from_page(f"{BASE_URL}{page}/")
+                executor.submit(save_image, str(page), url)
+            except (ValueError, AttributeError,
+                    requests.exceptions.MissingSchema):
+                print(f"WARNING: Invalid comic image source url.")
+                collect_garbage.append(f"{BASE_URL}{page}")
+                continue
     end = time.time()
 
     print(f"Downloaded {pages} comic(s) in {show_time(int(end - start))}.")
