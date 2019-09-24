@@ -3,13 +3,13 @@
 import os
 import sys
 import time
+import json
 import concurrent.futures
 from pathlib import Path
 from shutil import copyfileobj
 
 
 import requests
-from lxml import html
 
 
 BASE_URL = "https://www.xkcd.com/"
@@ -21,37 +21,38 @@ def show_logo():
        _           _                      
  tiny | |  image  | | downloader for
  __  _| | _____ __| |  ___ ___  _ __ ___  
- \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \
+ \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
   >  <|   < (_| (_| || (_| (_) | | | | | |
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
- version: 0.8.1
+ version: 0.9.2
  """
     return print(logo)
-
-
-def fetch_url(url: str) -> requests.Response:
-    return requests.get(url)
 
 
 def head_option(values: list) -> str:
     return next(iter(values), None)
 
 
-def get_penultimate(url: str) -> int:
-    page = fetch_url(url)
-    tree = html.fromstring(page.content)
-    newest_comic = head_option(
-        tree.xpath('//*[@id="middleContainer"]/a[1]/@href'))
-    return int(newest_comic.replace("/", ""))
+def get_current_comic(url: str) -> int:
+    current_comic = requests.get("https://xkcd.com/info.0.json").json()
+    return int(current_comic["num"])
 
 
-def get_images_from_page(url: str) -> str:
-    page = fetch_url(url)
-    tree = html.fromstring(page.content)
-    return head_option(tree.xpath('//*[@id="comic"]//img/@src'))
+def get_images_from_page(comic_number: str) -> str:
+    request = requests.get(f"https://xkcd.com/{comic_number}/info.0.json")
+    if request.status_code <= 299:
+        return request.json()["img"]
 
 
-def get_number_of_pages(latest_comic: int) -> int:
+def get_comic_name_and_date(comic_number: str) -> str:
+    request = requests.get(
+        f"https://xkcd.com/{comic_number}/info.0.json").json()
+    comic_name = request["safe_title"].replace(" ", "_")
+    comic_date = "_".join([request["year"], request["month"], request["day"]])
+    return comic_name + "_" + comic_date
+
+
+def get_number_of_comics_to_download(latest_comic: int) -> int:
     print(f"There are {latest_comic} comics.")
     print(f"How many do you want to download? Type 0 to exit.")
     while True:
@@ -68,19 +69,15 @@ def get_number_of_pages(latest_comic: int) -> int:
         return number_of_comics
 
 
-def clip_url(img: str) -> str:
-    return img.rpartition("/")[-1]
-
-
 def make_dir():
     return os.makedirs(SAVE_DIRECTORY, exist_ok=True)
 
 
 def save_image(comic_id: str, img: str):
-    comic_name = comic_id + "_" + clip_url(img)
+    comic_name = get_comic_name_and_date(comic_id)
     print(f"Downloading: {comic_name}")
     f_name = SAVE_DIRECTORY / comic_name
-    with requests.get("https:" + img, stream=True) as img, open(f_name, "wb") \
+    with requests.get(img, stream=True) as img, open(f_name, "wb") \
             as output:
         copyfileobj(img.raw, output)
 
@@ -97,15 +94,15 @@ def get_xkcd():
     make_dir()
 
     collect_garbage = []
-    latest_comic = get_penultimate(f"{BASE_URL}archive")
-    pages = get_number_of_pages(latest_comic)
+    latest_comic = get_current_comic(f"{BASE_URL}archive")
+    pages = get_number_of_comics_to_download(latest_comic)
 
     start = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         for page in reversed(range(latest_comic-pages + 1, latest_comic + 1)):
             print(f"Fetching page {page} out of {latest_comic}")
             try:
-                url = get_images_from_page(f"{BASE_URL}{page}/")
+                url = get_images_from_page(str(page))
                 executor.submit(save_image, str(page), url)
             except (ValueError, AttributeError,
                     requests.exceptions.MissingSchema):
