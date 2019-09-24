@@ -12,7 +12,6 @@ from shutil import copyfileobj
 import requests
 
 
-BASE_URL = "https://www.xkcd.com/"
 SAVE_DIRECTORY = Path('xkcd_comics')
 
 
@@ -24,16 +23,13 @@ def show_logo():
  \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
   >  <|   < (_| (_| || (_| (_) | | | | | |
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
- version: 0.9.2
+ version: 0.9.3
  """
     return print(logo)
 
 
-def head_option(values: list) -> str:
-    return next(iter(values), None)
 
-
-def get_current_comic(url: str) -> int:
+def get_current_comic() -> int:
     current_comic = requests.get("https://xkcd.com/info.0.json").json()
     return int(current_comic["num"])
 
@@ -48,7 +44,7 @@ def get_comic_name_and_date(comic_number: str) -> str:
     request = requests.get(
         f"https://xkcd.com/{comic_number}/info.0.json").json()
     comic_name = request["safe_title"].replace(" ", "_")
-    comic_date = "_".join([request["year"], request["month"], request["day"]])
+    comic_date = "-".join([request["year"], request["month"], request["day"]])
     return comic_name + "_" + comic_date
 
 
@@ -94,9 +90,8 @@ def get_xkcd():
     make_dir()
 
     collect_garbage = []
-    latest_comic = get_current_comic(f"{BASE_URL}archive")
+    latest_comic = get_current_comic()
     pages = get_number_of_comics_to_download(latest_comic)
-
     start = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         for page in reversed(range(latest_comic-pages + 1, latest_comic + 1)):
@@ -110,12 +105,7 @@ def get_xkcd():
                 collect_garbage.append(f"{BASE_URL}{page}")
                 continue
     end = time.time()
-
     print(f"Downloaded {pages} comic(s) in {show_time(int(end - start))}.")
-
-    if len(collect_garbage) > 0:
-        print("However, was unable to download images for these pages:")
-        print("\n".join(page for page in collect_garbage))
 
 
 def main():
