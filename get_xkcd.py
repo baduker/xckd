@@ -28,7 +28,6 @@ def show_logo():
     return print(logo)
 
 
-
 def get_current_comic() -> int:
     current_comic = requests.get("https://xkcd.com/info.0.json").json()
     return int(current_comic["num"])
@@ -78,7 +77,7 @@ def save_image(comic_id: str, img: str):
         copyfileobj(img.raw, output)
 
 
-def show_time(seconds: int) -> int:
+def show_time(seconds: int) -> str:
     minutes, seconds = divmod(seconds, 60)
     hours, minutes = divmod(minutes, 60)
     time_elapsed = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
@@ -102,7 +101,7 @@ def get_xkcd():
             except (ValueError, AttributeError,
                     requests.exceptions.MissingSchema):
                 print(f"WARNING: Invalid comic image source url.")
-                collect_garbage.append(f"{BASE_URL}{page}")
+                collect_garbage.append(f"{page}")
                 continue
     end = time.time()
     print(f"Downloaded {pages} comic(s) in {show_time(int(end - start))}.")
