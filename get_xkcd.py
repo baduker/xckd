@@ -8,15 +8,11 @@ import concurrent.futures
 from pathlib import Path
 from shutil import copyfileobj
 
-
 import requests
 
 
 SAVE_DIRECTORY = Path('xkcd_comics')
-
-
-def show_logo():
-    logo = """
+LOGO = """
        _           _                      
  tiny | |  image  | | downloader for
  __  _| | _____ __| |  ___ ___  _ __ ___  
@@ -25,7 +21,10 @@ def show_logo():
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
  version: 0.9.3
  """
-    return print(logo)
+
+
+def show_logo():
+    return LOGO
 
 
 def get_current_comic() -> int:
@@ -69,7 +68,7 @@ def make_dir():
 
 
 def save_image(comic_id: str, img: str):
-    comic_name = get_comic_name_and_date(comic_id)
+    comic_name = get_comic_name_and_date(comic_id) + ".png"
     print(f"Downloading: {comic_name}")
     f_name = SAVE_DIRECTORY / comic_name
     with requests.get(img, stream=True) as img, open(f_name, "wb") \
@@ -93,7 +92,8 @@ def get_xkcd():
     pages = get_number_of_comics_to_download(latest_comic)
     start = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        for page in reversed(range(latest_comic-pages + 1, latest_comic + 1)):
+        for page in reversed(range(
+                latest_comic - (pages + 1), latest_comic + 1)):
             print(f"Fetching page {page} out of {latest_comic}")
             try:
                 url = get_images_from_page(str(page))
@@ -105,6 +105,10 @@ def get_xkcd():
                 continue
     end = time.time()
     print(f"Downloaded {pages} comic(s) in {show_time(int(end - start))}.")
+    if len(collect_garbage) > 0:
+        print(f"However, was unbale to fetch these comic urls:")
+        for invalid_url in collect_garbage:
+            print(f"{invalid_url}")
 
 
 def main():
