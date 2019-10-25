@@ -19,7 +19,7 @@ LOGO = """
  \ \/ / |/ / __/ _` | / __/ _ \| '_ ` _ \ 
   >  <|   < (_| (_| || (_| (_) | | | | | |
  /_/\_\_|\_\___\__,_(_)___\___/|_| |_| |_|
- version: 0.9.3
+ version: 0.9.4
  """
 
 
@@ -93,7 +93,7 @@ def get_xkcd():
     start = time.time()
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         for page in reversed(range(
-                latest_comic - (pages + 1), latest_comic + 1)):
+                latest_comic - pages, latest_comic)):
             print(f"Fetching page {page} out of {latest_comic}")
             try:
                 url = get_images_from_page(str(page))
